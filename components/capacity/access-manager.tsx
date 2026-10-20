@@ -1,0 +1,18 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, LoaderCircle, Pencil, Plus, ShieldCheck, Users } from "lucide-react";
+import { UserForm, type AccountInput } from "./forms";
+type Account = AccountInput & { id: string; createdAt: string; platformAccount: boolean };
+export function AccessManager({ sessionId, onSave }: { sessionId: string; onSave: (value: AccountInput) => Promise<void> }) {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [selected, setSelected] = useState<Account | undefined>();
+  const load = useCallback(async () => { setLoading(true); try { const response = await fetch("/api/users", { cache: "no-store" }); const result = await response.json() as { users?: Account[]; error?: string }; if (!response.ok || !result.users) throw new Error(result.error || "Não foi possível listar os acessos."); setAccounts(result.users.map(user => ({ ...user, active: Boolean(user.active) }))); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "Falha de conexão."); } finally { setLoading(false); } }, []);
+  useEffect(() => { load(); }, [load]);
+  if (editing) return <section className="account-editor"><button className="text-button back-link" onClick={() => { setEditing(false); setSelected(undefined); }}><ArrowLeft size={16} /> Voltar aos acessos</button><div className="form-section-heading first"><div><h2>{selected ? "Editar acesso" : "Criar acesso"}</h2><p>{selected ? "Atualize o perfil, a situação ou a senha desta conta." : "Cadastre um administrador ou um usuário de consulta."}</p></div><ShieldCheck size={23} /></div><UserForm key={selected?.id || "new"} data={selected} self={selected?.id === sessionId} onSave={async value => { await onSave(value); setEditing(false); setSelected(undefined); await load(); }} /></section>;
+  return <section className="access-manager"><div className="card-heading"><div><h2>Usuários e permissões</h2><p>Acesso individual com perfil Administrador ou Consulta.</p></div><button className="button primary" onClick={() => { setSelected(undefined); setEditing(true); }}><Plus size={16} /> Criar acesso</button></div><div className="access-role-summary"><div><ShieldCheck size={22} /><span><strong>Administrador</strong><small>Cadastros, escalas, demandas, regras e usuários.</small></span></div><div><Users size={22} /><span><strong>Consulta</strong><small>Somente visão geral e calendário, sem alterações.</small></span></div></div>
+    {loading ? <div className="account-loading"><LoaderCircle className="spin" size={23} /> Carregando acessos…</div> : error ? <div className="form-error" role="alert">{error}<button className="text-button" onClick={load}>Tentar novamente</button></div> : <div className="table-scroll"><table className="accounts-table"><thead><tr><th>USUÁRIO</th><th>ACESSO</th><th>PERFIL</th><th>SITUAÇÃO</th><th>AÇÃO</th></tr></thead><tbody>{accounts.map(account => <tr key={account.id}><td><strong>{account.name}{account.id === sessionId ? " (você)" : ""}</strong><small>{account.email || "E-mail não informado"}</small></td><td>{account.username || "Conta da plataforma"}</td><td><span className={`badge ${account.role === "admin" ? "admin" : "consultation"}`}>{account.role === "admin" ? "Administrador" : "Consulta"}</span></td><td><span className={`status-dot ${account.active ? "green" : "gray"}`} />{account.active ? "Ativo" : "Inativo"}</td><td><button className="button secondary small" onClick={() => { setSelected(account); setEditing(true); }}><Pencil size={14} /> Editar</button></td></tr>)}</tbody></table></div>}
+  </section>;
+}
