@@ -189,3 +189,5 @@ erDiagram
 
 Integração com identidade corporativa, importação em lote de feriados/férias, controle de aprovação em múltiplas etapas, notificações, adaptador PostgreSQL e integração com sistemas de chamados. O MVP usa seleção de faixa horária seguida de formulário; não implementa arraste de blocos ou atualização por WebSocket.
 
+#   c a p a c i t y _ m g  
+ 
