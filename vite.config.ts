@@ -1,12 +1,15 @@
-import vinext from "vinext";
+﻿import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
 import { connectorPreview } from "./build/connector-preview-plugin.mjs";
+import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
+import { cdnAdapter } from "@vinext/cloudflare/cache/cdn-adapter";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  "00000000-0000-4000-8000-000000000000";
+  "66692815-464c-4143-b7ff-d328509cb1e1";
 
 const { d1, r2 } = hostingConfig;
 
@@ -21,7 +24,7 @@ const localBindingConfig = {
     ? [
         {
           binding: d1,
-          database_name: "site-creator-d1",
+          database_name: "capacity-manager-db",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
         },
       ]
@@ -61,11 +64,12 @@ export default defineConfig(async ({ command }) => {
         : {}),
     },
     plugins: [
-      vinext(),
+      vinext({
+        cache: { data: kvDataAdapter(), cdn: cdnAdapter() },
+      }),
       sites({ mockAuth: !managedLinux }),
       connectorPreview(),
       cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
         config: {
           ...localBindingConfig,
@@ -94,7 +98,9 @@ export default defineConfig(async ({ command }) => {
               ],
             }
           : {}),
+        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
       }),
     ],
   };
 });
+
